@@ -1,0 +1,14 @@
+amends "elide:project.pkl"
+
+name = "elide-gradle-example"
+description = "Example project using Elide Gradle"
+
+dependencies {
+  maven {
+    packages {
+      // Guava
+      "com.google.guava:guava:33.4.8-jre"
+    }
+  }
+}
+
