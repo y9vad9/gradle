@@ -4,14 +4,16 @@ Experimental plugin for using [Elide](https://github.com/elide-dev/elide) from w
 
 ### Installation
 
-(1) Create the [`javac` shim](#javac-shim) in your `JAVA_HOME`.
-(2) Install and use the plugin as shown below.
+1) Create the `javac` shim in your `JAVA_HOME`:
 
-**`$JAVA_HOME/bin/elide-javac`**
-```bash
-#!env bash
-exec elide javac -- "${@}"
-```
+   **`$JAVA_HOME/bin/elide-javac`**
+    ```bash
+    #!env bash
+    exec elide javac -- "${@}"
+    ```
+
+2) Install and use the plugin as shown below.
+3) **That's it! Enjoy faster dependency resolution and Java compilation.**
 
 > [!NOTE]
 > We hope to eliminate this shim soon.
