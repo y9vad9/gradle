@@ -1,0 +1,14 @@
+name: "CI"
+
+"on":
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: "Build"
+    uses: ./.github/workflows/job.build.yml
