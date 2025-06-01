@@ -57,6 +57,6 @@ jobs:
       - name: "Setup: Dependencies (Remote Example)"
         run: cd ./example-project-remote && elide install
       - name: "Build: Projects"
-        run: ./gradlew --no-daemon build
+        run: ./gradlew --stacktrace --info --no-daemon build
       - name: "Build: Remote Example"
-        run: cd ./example-project-remote && ../gradlew --no-daemon build
+        run: cd ./example-project-remote && ../gradlew --stacktrace --info --no-daemon build
