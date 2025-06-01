@@ -3,7 +3,6 @@ package dev.elide.gradle;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.tasks.compile.JavaCompile;
 
 import javax.inject.Inject;
@@ -37,60 +36,82 @@ public class ElideGradlePlugin implements Plugin<Project> {
     }
 
     // Configure a Java compile task to use Elide instead of the standard compiler API.
-    private Task configureJavaCompileToUseElide(Project project, JavaCompile task, ElideExtension ext) {
+    private Task configureJavaCompileToUseElide(Path elide, Project project, JavaCompile task, ElideExtension ext) {
         project.getLogger().info(
                 "Installing Elide's javac support for task '{}' within project '{}'",
                 task.getName(),
                 activeProject.getName());
 
-        var javaHomeShim = Paths.get(System.getProperty("java.home"))
-                .resolve("bin")
-                .resolve("elide-javac");
-
+        Path javaHome = Paths.get(System.getProperty("java.home"));
         Path resolvedElide = null;
-        if (!Files.exists(javaHomeShim)) {
-            if (Files.isWritable(javaHomeShim.getParent())) {
-                // we can create the shim; if we are configured to do, we should do so now.
-                try(var writer = Files.newBufferedWriter(javaHomeShim)) {
-                    // write the shim to the file
-                    writer.write("#!/bin/sh\n");
-                    writer.write("exec " + resolvePathToElide().toAbsolutePath() + " javac -- \"$@\"\n");
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to write Elide javac shim", e);
+        if (ext.enableShim()) {
+            var javaHomeShim = javaHome
+                    .resolve("bin")
+                    .resolve("elide-javac");
+
+            if (!Files.exists(javaHomeShim)) {
+                if (Files.isWritable(javaHomeShim.getParent())) {
+                    // we can create the shim; if we are configured to do, we should do so now.
+                    try(var writer = Files.newBufferedWriter(javaHomeShim)) {
+                        // write the shim to the file
+                        writer.write("#!/bin/sh\n");
+                        writer.write("exec " + resolvePathToElide().toAbsolutePath() + " javac -- \"$@\"\n");
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to write Elide javac shim", e);
+                    }
+                } else {
+                    // we can't write the shim, and it's not there, and we need it, so we should warn and fall back.
+                    project.getLogger().warn("Elide's javac shim was not found at '{}'; falling back to stock javac.",
+                            javaHomeShim.toAbsolutePath());
+                    return task;
+                }
+            } else if (!Files.isExecutable(javaHomeShim)) {
+                // the shim is there, but it's not executable.
+                var result = javaHomeShim.toFile().setExecutable(true);
+                if (result) {
+                    // we're good to go
+                    resolvedElide = javaHomeShim;
+                } else {
+                    // we can't write the shim, and it's not there, and we need it, so we should warn and fall back.
+                    project.getLogger().warn("Elide's javac shim isn't executable, and can't be made executable Please " +
+                                    "run 'chmod +x {}' to fix this.",
+                            javaHomeShim.toAbsolutePath());
+                    return task;
                 }
             } else {
-                // we can't write the shim, and it's not there, and we need it, so we should warn and fall back.
-                project.getLogger().warn("Elide's javac shim was not found at '{}'; falling back to stock javac.",
-                        javaHomeShim.toAbsolutePath());
-                return task;
-            }
-        } else if (!Files.isExecutable(javaHomeShim)) {
-            // the shim is there, but it's not executable.
-            var result = javaHomeShim.toFile().setExecutable(true);
-            if (result) {
-                // we're good to go
+                // the shim is there and executable, so we can use it.
                 resolvedElide = javaHomeShim;
-            } else {
-                // we can't write the shim, and it's not there, and we need it, so we should warn and fall back.
-                project.getLogger().warn("Elide's javac shim isn't executable, and can't be made executable Please " +
-                                "run 'chmod +x {}' to fix this.",
-                        javaHomeShim.toAbsolutePath());
-                return task;
             }
         } else {
-            // the shim is there and executable, so we can use it.
-            resolvedElide = javaHomeShim;
+            // if the shim is not enabled, we use the Elide binary directly.
+            resolvedElide = elide;
         }
         if (resolvedElide == null) {
             project.getLogger().error("Failed to resolve Elide javac shim, and Java Home is not writable.");
             throw new RuntimeException("Failed to resolve Elide javac shim; is your Java Home writable?");
         }
+
         Objects.requireNonNull(resolvedElide);
         var pathAsString = resolvedElide.toString();
         var options = task.getOptions();
         var forkOptions = options.getForkOptions();
         options.setFork(true);
         forkOptions.setExecutable(pathAsString);
+
+        // if the shim is not enabled, we need to pass the `javac` flag and the separator (`--`) so that the binary can
+        // resolve the arguments correctly.
+        if (!ext.enableShim()) {
+            forkOptions.setJavaHome(javaHome.toFile());
+            var allArgs = forkOptions.getJvmArgs();
+            if (allArgs == null) {
+                allArgs = Collections.emptyList();
+            }
+            var prefixed = new ArrayList<String>(allArgs.size() + 2);
+            prefixed.add("javac");
+            prefixed.add("--");
+            prefixed.addAll(allArgs);
+            forkOptions.setJvmArgs(prefixed);
+        }
         return task;
     }
 
@@ -104,8 +125,8 @@ public class ElideGradlePlugin implements Plugin<Project> {
                 path.toString());
 
         return compileTasks.stream()
-                .map(compileTask -> configureJavaCompileToUseElide(project, compileTask, elideExtension))
-                .collect(Collectors.toList());
+            .map(compileTask -> configureJavaCompileToUseElide(path, project, compileTask, elideExtension))
+            .collect(Collectors.toList());
     }
 
     // Install integration with Gradle's Maven root support.
@@ -142,7 +163,6 @@ public class ElideGradlePlugin implements Plugin<Project> {
         if (Files.exists(elideWithinHome) && Files.isExecutable(elideWithinHome)) {
             return elideWithinHome.toAbsolutePath();
         }
-
         throw new RuntimeException("Failed to find `elide` on your PATH; is it installed?");
 
         // otherwise, we should resolve from the root project's layout. the plugin will download elide and install it
@@ -189,7 +209,8 @@ public class ElideGradlePlugin implements Plugin<Project> {
             i += 1;
         }
 
-        var subproc = new ProcessBuilder().command(allArgs);
+        var cwd = activeProject.getLayout().getProjectDirectory().getAsFile();
+        var subproc = new ProcessBuilder().command(allArgs).directory(cwd);
         try {
             var proc = subproc.start();
             var builder = new StringBuilder();
@@ -208,6 +229,8 @@ public class ElideGradlePlugin implements Plugin<Project> {
             }
             var exit = proc.waitFor();
             if (exit != 0) {
+                // print output
+                activeProject.getLogger().error("Elide process exited with code {}: {}", exit, builder);
                 throw new RuntimeException("Elide failed with exit code " + exit);
             }
             return builder.toString().trim();

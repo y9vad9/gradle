@@ -1,28 +1,40 @@
 package dev.elide.gradle;
 
 import org.gradle.api.Project;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 
 import java.nio.file.Path;
 
 public class ElideExtension implements ElideExtensionConfig {
     private static final boolean USE_ROOT_FOR_DEPS = true;
-    private static final String DEFAULT_DEVROOT = ".dev";
+    private static final String DEFAULT_DEV_ROOT = ".dev";
     protected Project activeProject;
     protected boolean enableInstall = false;
     protected boolean useBuildEmbedded = false;
     protected boolean enableJavacIntegration = true;
     protected boolean enableProjectIntegration = true;
     protected boolean enableMavenIntegration = true;
+    protected boolean enableShim = true;
     protected Property<Boolean> doEnableInstall;
     protected Property<Boolean> doEmbeddedBuild;
     protected Property<Boolean> doUseMavenIntegration;
     protected Property<Boolean> doEnableProjects;
     protected Property<Boolean> doEnableJavaCompiler;
     protected Property<Boolean> doResolveElideFromPath;
-    protected RegularFileProperty projectManifest;
+    protected Property<Boolean> enableDebugMode;
+    protected Property<Boolean> enableVerboseMode;
+    @PathSensitive(PathSensitivity.RELATIVE) protected RegularFileProperty projectManifest;
+    @PathSensitive(PathSensitivity.ABSOLUTE) protected RegularFileProperty activeElideBin;
+    @PathSensitive(PathSensitivity.RELATIVE) protected DirectoryProperty activeDevRoot;
+    @PathSensitive(PathSensitivity.RELATIVE) @Input protected RegularFileProperty activeLockfile;
 
     @Override
     public Property<Boolean> getEnableInstall() {
@@ -59,16 +71,38 @@ public class ElideExtension implements ElideExtensionConfig {
         return doResolveElideFromPath;
     }
 
-    Path resolveLocalDepsPath() {
-        var projectRoot = (USE_ROOT_FOR_DEPS ? activeProject.getRootProject() : activeProject)
-                .getLayout()
-                .getProjectDirectory();
+    @Override
+    public DirectoryProperty getDevRoot() {
+        return activeDevRoot;
+    }
 
-        return projectRoot.dir(DEFAULT_DEVROOT)
-                .getAsFile()
-                .toPath()
+    @Override
+    public RegularFileProperty getElideBin() {
+        return activeElideBin;
+    }
+
+    @Override
+    public Property<Boolean> getDebug() {
+        return enableDebugMode;
+    }
+
+    @Override
+    public Property<Boolean> getVerbose() {
+        return enableVerboseMode;
+    }
+
+    boolean enableShim() {
+        return enableShim;
+    }
+
+    Path resolveLocalDepsPath() {
+        return activeDevRoot.getAsFile().get().toPath()
                 .resolve("dependencies")
                 .resolve("m2");
+    }
+
+    Provider<RegularFile> resolveLockfilePath() {
+        return activeDevRoot.file("elide.lock.bin");
     }
 
     ElideExtension(Project project, ObjectFactory objects) {
@@ -79,6 +113,16 @@ public class ElideExtension implements ElideExtensionConfig {
         this.doEnableProjects = objects.property(Boolean.class).convention(enableProjectIntegration);
         this.doEnableJavaCompiler = objects.property(Boolean.class).convention(enableJavacIntegration);
         this.doResolveElideFromPath = objects.property(Boolean.class).convention(false);
-        this.projectManifest = objects.fileProperty().convention(project.getLayout().getProjectDirectory().file("elide.pkl"));
+        this.projectManifest = objects.fileProperty()
+                .convention(project.getLayout().getProjectDirectory().file("elide.pkl"));
+
+        var devRootProject = (USE_ROOT_FOR_DEPS ? activeProject.getRootProject() : activeProject);
+        this.activeElideBin = objects.fileProperty();
+        this.activeDevRoot = objects.directoryProperty()
+                .convention(devRootProject.getLayout().getProjectDirectory().dir(DEFAULT_DEV_ROOT));
+
+        this.enableDebugMode = objects.property(Boolean.class).convention(false);
+        this.enableVerboseMode = objects.property(Boolean.class).convention(false);
+        this.activeLockfile = objects.fileProperty().convention(resolveLockfilePath());
     }
 }
