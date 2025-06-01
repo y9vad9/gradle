@@ -81,6 +81,10 @@ public class ElideGradlePlugin implements Plugin<Project> {
             // the shim is there and executable, so we can use it.
             resolvedElide = javaHomeShim;
         }
+        if (resolvedElide == null) {
+            project.getLogger().error("Failed to resolve Elide javac shim, and Java Home is not writable.");
+            throw new RuntimeException("Failed to resolve Elide javac shim; is your Java Home writable?");
+        }
         Objects.requireNonNull(resolvedElide);
         var pathAsString = resolvedElide.toString();
         var options = task.getOptions();

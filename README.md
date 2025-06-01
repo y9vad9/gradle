@@ -8,7 +8,7 @@ Experimental plugin for using [Elide](https://github.com/elide-dev/elide) from w
 
    **`$JAVA_HOME/bin/elide-javac`**
     ```bash
-    #!env bash
+    #!/usr/bin/env bash
     exec elide javac -- "${@}"
     ```
 
