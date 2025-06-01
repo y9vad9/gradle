@@ -16,7 +16,7 @@ Experimental plugin for using [Elide](https://github.com/elide-dev/elide) from w
 3) **That's it! Enjoy faster dependency resolution and Java compilation.**
 
 > [!NOTE]
-> We hope to eliminate this shim soon.
+> We hope to eliminate the `JAVA_HOME` shim soon.
 
 ### Usage
 
@@ -90,3 +90,41 @@ Learn more about Elide at [elide.dev](https://elide.dev).
 - [ ] Augment project metadata for reporting
 - [ ] Generate dependency manifests
 
+### How does it work?
+
+[Elide](https://github.com/elide-dev/elide) is a [GraalVM](https://graalvm.org) native image which functions as a Node-
+like runtime. It speaks multiple languages, including Java, Kotlin, Python, JavaScript, TypeScript, WASM, and Pkl.
+
+In addition to features which run code (i.e. the runtime!), Elide _also_ is a full batteries-included toolchain for
+supported languages, including:
+
+- A drop-in replacement for `javac` and `kotlinc`
+- A drop-in replacement for `jar` and `javadoc`
+- Maven-compatible dependency resolution and fetching
+
+This plugin configures your Gradle build to use Elide's dependency and/or compile features instead of Gradle's.
+
+#### Compiling Java with Elide + Gradle
+
+Gradle's `JavaCompile` tasks are configured to use Elide through `isFork = true` and `forkOptions.executable`. These
+point to a shim in the `JAVA_HOME` which invokes `elide javac -- ...` instead of `javac ...`.
+
+As a result, JIT warmup is entirely skipped when compiling Java. **Projects under 10,000 classes may see better compiler
+performance, in some cases up to 20x faster than stock `javac`.**
+
+#### Fetching Dependencies with Elide + Gradle
+
+Elide resolves and fetches Maven dependencies with identical semantics to Maven's own resolver, but again in a native
+image, and with an optimized resolution step (through the use of a checked-in lockfile).
+
+When activated for use with Gradle, a few changes are made to your build:
+
+- **An invocation of `elide install`** is added before any Java compilation tasks.
+- **Gradle is configured for a local Maven repo** at `.dev/dependencies/m2`, which is where Elide puts JARs.
+- Thus, when Gradle resolves dependencies, they are _already on disk_ and ready to be used in a classpath.
+
+In this mode, dependencies are downloaded once and then can be used with both Elide and Gradle.
+
+> [!WARNING]
+> Fetching dependencies with Elide currently requires an `elide.pkl` manifest listing your Maven dependencies. This will
+> change in the future.
