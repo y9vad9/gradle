@@ -72,3 +72,5 @@ Learn more about Elide at [elide.dev](https://elide.dev).
 - [ ] Support the configuration cache
 - [ ] Race-and-report vs. `javac`
 - [ ] Augment project metadata for reporting
+- [ ] Generate dependency manifests
+

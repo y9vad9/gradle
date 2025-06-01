@@ -4,6 +4,7 @@ plugins {
     `maven-publish`
     `java-gradle-plugin`
     signing
+    id("com.gradle.plugin-publish") version "1.2.1"
     id("de.undercouch.download") version "5.6.0"
 }
 
@@ -50,6 +51,9 @@ dependencies {
 }
 
 gradlePlugin {
+    website = "https://elide.dev"
+    vcsUrl = "https://github.com/elide-dev/gradle"
+
     val elide by plugins.creating {
         id = "dev.elide"
         displayName = "Elide Gradle Plugin"
