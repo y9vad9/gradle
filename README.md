@@ -6,14 +6,14 @@ Experimental plugin for using [Elide](https://github.com/elide-dev/elide) from w
 
 **`gradle.properties`**
 ```properties
-elidePluginVersion=latest
+elidePluginVersion=1.0.0-beta5
 ```
 
 **`settings.gradle.kts`**
 ```kotlin
 // Use `latest` for the latest version, or any other tag, branch, or commit SHA on this project.
 val elidePluginVersion: String by settings
-apply(from = "https://gradle.elide.dev/$elidePluginVersion/elide.gradle.kts")
+apply(from = "https://gradle.elide.dev/tag/$elidePluginVersion/elide.gradle.kts")
 ```
 
 **`build.gradle.kts`**
