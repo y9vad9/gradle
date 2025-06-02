@@ -4,6 +4,9 @@ Experimental plugin for using [Elide](https://github.com/elide-dev/elide) from w
 
 ### Installation
 
+Make sure to [install Elide](https://docs.elide.dev/installation.html) before proceeding. In GHA, use our
+[`elide-dev/setup-elide`](https://github.com/elide-dev/setup-elide) action to install Elide.
+
 1) Create the `javac` shim in your `JAVA_HOME`:
 
    **`$JAVA_HOME/bin/elide-javac`**
