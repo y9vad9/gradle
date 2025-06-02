@@ -9,7 +9,9 @@ val latestElide = findProperty("elide.version")?.toString() ?: error(
 )
 
 group = "dev.elide.gradle"
-version = latestElide
+version = findProperty("version")?.toString() ?: error(
+  "Please provide the 'version' property in the gradle.properties file."
+)
 
 val mainPluginId = "dev.elide"
 

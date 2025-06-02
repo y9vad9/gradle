@@ -2,7 +2,7 @@
 // Elide Gradle Plugin
 //
 
-val thisVersion = "1.0.0-beta5"
+val thisVersion = "1.0.0"
 
 pluginManagement {
     // Installs Elide's maven repository for plugin resolution.

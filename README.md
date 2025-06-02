@@ -25,19 +25,20 @@ Make sure to [install Elide](https://docs.elide.dev/installation.html) before pr
 
 **`gradle.properties`**
 ```properties
-elidePluginVersion=1.0.0-beta5
+elidePluginVersion=latest
 ```
 
 **`settings.gradle.kts`**
 ```kotlin
 // Use `latest` for the latest version, or any other tag, branch, or commit SHA on this project.
 val elidePluginVersion: String by settings
-apply(from = "https://gradle.elide.dev/tag/$elidePluginVersion/elide.gradle.kts")
+apply(from = "https://gradle.elide.dev/$elidePluginVersion/elide.gradle.kts")
 ```
 
 **`build.gradle.kts`**
 ```kotlin
 plugins {
+  // The `elideRuntime` catalog is added for you. Add the plugin like this:
   alias(elideRuntime.plugins.elide)
 }
 

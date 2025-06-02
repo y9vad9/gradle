@@ -1,0 +1,20 @@
+//amends "https://pkl.elide.dev/pkl/project.pkl"
+amends "elide:project.pkl"
+
+name = "elide"
+description = "Worker for Elide's Gradle integration"
+
+scripts {
+  ["types"] = "wrangler types ./worker-apis.d.ts"
+  ["build"] = "wrangler deploy --dry-run"
+  ["deploy"] = "wrangler deploy"
+}
+
+dependencies {
+  npm {
+    devPackages {
+      "@cloudflare/workers-types@4.20250313.0"
+      "wrangler@latest"
+    }
+  }
+}

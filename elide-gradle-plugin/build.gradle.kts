@@ -13,7 +13,9 @@ val elideVersion = findProperty("elide.version")?.toString() ?: error(
 )
 
 group = "dev.elide.gradle"
-version = elideVersion
+version = findProperty("version")?.toString() ?: error(
+    "Please provide the 'version' property in the gradle.properties file."
+)
 
 publishing {
     repositories {
