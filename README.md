@@ -15,6 +15,11 @@ Make sure to [install Elide](https://docs.elide.dev/installation.html) before pr
     exec elide javac -- "${@}"
     ```
 
+    Also, make sure to mark it as executable:
+    ```bash
+    chmod +x $JAVA_HOME/bin/elide-javac
+    ```
+
 2) Install and use the plugin as shown below.
 3) **That's it! Enjoy faster dependency resolution and Java compilation.**
 
